@@ -9,48 +9,13 @@ import UIKit
 
 class GameViewController: UIViewController {
     
+    weak var delegate: UserActionsDelegate?
+    weak var saveDataDelegate: SaveDataDelegate?
+    
     lazy var gameView = ViewGame(handler: self.carMove(sideToMove:))
     let gameModel = GameModel()
-    var backToMenuHandler: () -> Void
     var gameTimer: Timer?
-    
-    init(backToMenuHandler: @escaping () -> Void) {
-        self.backToMenuHandler = backToMenuHandler
-        super.init(nibName: nil, bundle: nil)
-        
-    }
-    
-    override func viewWillAppear(_ animated: Bool) {
-        self.setDifficultAlert()
-    }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-    func setDifficultAlert() {
-        let alert = UIAlertController(title: "Difficult", message: "Set game's difficult (integer)", preferredStyle: .alert)
-        alert.addTextField { textField in
-            textField.placeholder = "from 5 to 99"
-            textField.textColor = .red
-        }
-        alert.addAction(UIAlertAction(title: "Set", style: .destructive, handler: { _ in
-            guard let text = alert.textFields?.first?.text else { self.setDifficultAlert(); return }
-            let userInteger = Int(text)
-            if userInteger == nil {
-                self.setDifficultAlert()
-            }
-            else {
-                if userInteger! < 5 || userInteger! > 99 {
-                    self.setDifficultAlert()
-                    return
-                }
-                self.gameModel.obstaclesCount = userInteger!
-                self.startGame()
-            }
-        }))
-        
-        self.present(alert, animated: true, completion: nil)
-    }
+    var carState: State?
     
     func startGame() {
         self.gameView.createGameSpace(obstaclesCount: self.gameModel.obstaclesCount)
@@ -60,6 +25,7 @@ class GameViewController: UIViewController {
     func stopGame() {
         self.gameTimer?.invalidate()
         self.gameTimer = nil
+        self.delegate?.action(self, tappedButton: nil)
     }
     
     @objc
@@ -84,6 +50,7 @@ class GameViewController: UIViewController {
             return flag
         }
         if carBorders.left > roadBorders.left + 50 && carBorders.right < roadBorders.right - 50 && !carCrashOfObstacles{
+            self.carState = .normal
             self.title = "score: \(self.gameModel.score)"
             self.gameView.roadMove()
         }
@@ -93,47 +60,50 @@ class GameViewController: UIViewController {
     }
     
     func carMove(sideToMove: UISwipeGestureRecognizer.Direction) {
-        switch sideToMove {
-        case .left:
-            self.gameView.animateConstraint.car.constant -= 20
-            UIView.animate(withDuration: 0.3) {
-                self.gameView.layoutIfNeeded()
+        if self.carState == .normal {
+            switch sideToMove {
+            case .left:
+                self.gameView.animateConstraint.car.constant -= 20
+                UIView.animate(withDuration: 0.3) {
+                    self.gameView.layoutIfNeeded()
+                }
+            case .right:
+                self.gameView.animateConstraint.car.constant += 20
+                UIView.animate(withDuration: 0.3) {
+                    self.gameView.layoutIfNeeded()
+                }
+            default: return
             }
-        case .right:
-            self.gameView.animateConstraint.car.constant += 20
-            UIView.animate(withDuration: 0.3) {
-                self.gameView.layoutIfNeeded()
-            }
-        default: return
         }
     }
     
     func gameOverAlert() {
-        self.stopGame()
         let alert = UIAlertController(title: "Game over", message: "You score: \(self.gameModel.score)", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Back to menu", style: .destructive, handler: { _ in
-            self.backToMenuHandler()
         }))
         
         self.present(alert, animated: true, completion: nil)
+        self.stopGame()
     }
     
     func gameWinAlert() {
-        self.stopGame()
         let alert = UIAlertController(title: "You'r WIN!", message: "Final score: \(self.gameModel.score)", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Back to menu", style: .cancel, handler: { _ in
-            self.backToMenuHandler()
         }))
         
         self.present(alert, animated: true, completion: nil)
+        self.stopGame()
     }
     
     override func loadView() {
         self.view = self.gameView
+        self.startGame()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         self.stopGame()
+        self.saveDataDelegate?.updateDataOfResult(self, scoreToSave: self.gameModel.score,
+                                                  dateOfStart: Date.now)
     }
 }

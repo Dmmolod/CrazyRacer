@@ -91,7 +91,6 @@ class ViewGame: UIView {
     private func setupCar(superView: UIView) -> UIImageView {
         let car = UIImageView(image: UIImage(named: "car"))
         car.contentMode = .scaleAspectFill
-//        car.backgroundColor = .white
         
         car.translatesAutoresizingMaskIntoConstraints = false
         superView.addSubview(car)
@@ -125,7 +124,6 @@ class ViewGame: UIView {
         for index in 0..<count {
             let obstacle = UIImageView(image: UIImage(named: "rock"))
             obstacle.contentMode = .scaleAspectFill
-//            obstacle.backgroundColor = .white
             
             obstacle.translatesAutoresizingMaskIntoConstraints = false
             self.background.addSubview(obstacle)

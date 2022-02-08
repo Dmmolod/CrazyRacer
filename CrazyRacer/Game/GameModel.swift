@@ -16,5 +16,6 @@ class GameModel {
             score = counter/10
         }
     }
+    
     var obstaclesCount: Int = 1
 }
